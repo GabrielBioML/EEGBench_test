@@ -1,3 +1,4 @@
 # EEGBench_test
 
-this project ....
+this program stimulates the brain in order
+ to find and identify P300 waves
