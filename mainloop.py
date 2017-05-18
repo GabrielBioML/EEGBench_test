@@ -22,11 +22,39 @@
 #  
 #  
 
+import pygame
+import os
+import time
+import glob
+from random import shuffle
 
+def wait(temps):
+	a = time.clock() + temps
+	b = 0
+	while b < a:
+		b = time.clock()
+	return 0
+
+def setupimage(): #load the picture that will be used
+	liste = glob.glob('/home/pi/Documents/EEGBench_test/Images/picture*')
+	n = len(liste)
+	shuffle(liste)
+	d = {}
+	namespace = globals()
+	for i in range (0,n-1):
+		namespace['image_%d' % i] = pygame.image.load(os.path.join(liste[i]))
+	return 0
 
 def main():
-	
-	return 0
+	setupimage()
+	pygame.init()
+	a = time.time()	
+	image = pygame.image.load(os.path.join('/home/pi/Documents/EEGBench_test/Images/picture_1.jpg'))
+	screen = pygame.display.set_mode((1824, 984))
+	screen.blit(image, (0,0))
+	pygame.display.flip()
+	wait(3)
+	return 0 
 
 if __name__ == '__main__':
 	main()
