@@ -30,15 +30,20 @@ from random import shuffle
 
 def setupimage(): #load the picture that will be used
 		
-		liste = glob.glob('/home/pi/Documents/EEGBench_test/Images/picture*')
+		liste = glob.glob('/home/pi/Documents/EEGBench_test/Images/stimuli*') #find all the pictures that represent a stimuli
+		print liste
 		n = len(liste)
 		image=[None] * n
-		shuffle(liste)
-		#namespace = globals()
-		for i in range (0,n-1):
-			#namespace['image_%d' % i] 
-			image[i]= pygame.image.load(os.path.join(liste[i+1]))
-		return image
+		print image
+		for i in range (0,n):
+			image[i]= pygame.image.load(os.path.join(liste[i]))
+		liste = glob.glob('/home/pi/Documents/EEGBench_test/Images/nonstimuli*') #find all the pictures that represent a non-stimuli
+		l = len(liste)
+		imageNST=[None] * l
+		for i in range (0,l):
+			imageNST[i]= pygame.image.load(os.path.join(liste[i]))
+		image.extend(imageNST)
+		return [imageNST, image]    #return a list of all the nonstimuli surface all a list of all the surface
 			
 			
 class Picture(object):
@@ -53,14 +58,24 @@ class Picture(object):
 
 
 	def main(self):
-		#self.setupimage()
+		print self.__picture
 		pygame.init()
 		a = time.time()	
-		#image = pygame.image.load(os.path.join('/home/pi/Documents/EEGBench_test/Images/picture_1.jpg'))
-		screen = pygame.display.set_mode((1824, 984))
-		screen.blit(self.__picture[2], (0,0))
-		pygame.display.flip()
-		self.wait(3)
+		L = len(self.__picture[1])
+		r = list(range(L))
+		shuffle(r)
+		for i in r:
+			screen = pygame.display.set_mode((1824, 984))
+			screen.blit(self.__picture[1][i], (0,0))
+			pygame.display.flip()
+			self.wait(3)
+			NST = len(self.__picture[1])-len(self.__picture[0])
+			print NST
+			if i < NST:
+				print 'stimuli!!!'
+			else:
+				print 'non stimuli'
+			
 		
 if __name__ == '__main__':
 	pic=Picture()
