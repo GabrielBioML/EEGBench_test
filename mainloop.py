@@ -27,6 +27,7 @@ import os
 import time
 import glob
 from random import shuffle
+import threading
 
 def setupimage(): #load the picture that will be used
 		
@@ -42,18 +43,17 @@ def setupimage(): #load the picture that will be used
 			imageNST[i]= pygame.image.load(os.path.join(liste[i]))
 		image.extend(imageNST)
 		return [imageNST, image]    #return a list of all the nonstimuli surface all a list of all the surface
-			
+		
+def wait(temps):
+	a = time.clock() + temps
+	b = 0
+	while b < a:
+			b = time.clock()			
 			
 class Picture(object):
 	def __init__(self):
-		self.__picture=setupimage()
+		self.__picture =setupimage()
 		
-	def wait(self,temps):
-		a = time.clock() + temps
-		b = 0
-		while b < a:
-				b = time.clock()
-
 
 	def main(self):
 		pygame.init()
@@ -65,15 +65,39 @@ class Picture(object):
 			screen = pygame.display.set_mode((1824, 984))
 			screen.blit(self.__picture[1][i], (0,0))
 			pygame.display.flip()
-			self.wait(1)
 			NST = len(self.__picture[1])-len(self.__picture[0])
 			if i < NST:
-				print 'stimuli!!!'
+				print "stimuli!!!"
 			else:
-				print 'non stimuli'
-			
+				print "non stimuli"
+			self.__picture[1][i].unlock()
+			wait(1)
+		print a
+
+class Data(object):
+	def __init__(self):
+		self.__Data = setupData()
+		
+	def main(self):
+		a = time.time()
+		wait(3)
+		b = time.time()
+		print "success!", b
+
+def setupData():
+	return 0
+		
+		
+		
 		
 if __name__ == '__main__':
 	pic=Picture()
-	pic.main()
+	data=Data()
+	pic1 = threading.Thread(target = pic.main())
+	data1 = threading.Thread(target = data.main())
+	data1.start()
+	pic1.start()
+	pic1.join()
+	data1.join()
+	
 
