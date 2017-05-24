@@ -55,7 +55,7 @@ class Picture(object):
 		self.__picture =setupimage()
 		
 
-	def main(self):
+	def afficher(self):
 		pygame.init()
 		a = time.time()	
 		L = len(self.__picture[1])
@@ -71,7 +71,7 @@ class Picture(object):
 			else:
 				print "non stimuli"
 			self.__picture[1][i].unlock()
-			wait(1)
+			time.sleep(1)
 		print a
 
 class Data(object):
@@ -79,10 +79,10 @@ class Data(object):
 		self.__Data = setupData()
 		
 	def main(self):
-		a = time.time()
-		wait(3)
+            while True:
 		b = time.time()
 		print "success!", b
+		time.sleep(2)
 
 def setupData():
 	return 0
@@ -93,11 +93,14 @@ def setupData():
 if __name__ == '__main__':
 	pic=Picture()
 	data=Data()
-	pic1 = threading.Thread(target = pic.main())
-	data1 = threading.Thread(target = data.main())
+	data1 = threading.Thread(target = data.main)
+        pic1 = threading.Thread(target = pic.afficher)
+        data1.setDaemon(True)
+
 	data1.start()
 	pic1.start()
+
 	pic1.join()
-	data1.join()
 	
 
+	
