@@ -33,11 +33,14 @@ from random import shuffle
 import threading
 import numpy as np
 
+
 from array import *
 from ctypes import *
 from __builtin__ import exit
 
 
+global condition
+condition = False
 
 
 def setupData(): #Ask for the desired channels then asign them a thread task
@@ -87,13 +90,16 @@ class Picture(object):
 				print "non stimuli"
 			self.__picture[1][i].unlock()
 			time.sleep(1)
-		print a
+		global condition
+		condition = True
 
 class Data(object):
 	def __init__(self):
 		self.__Data = []
 		
 	def main(self):
+		global condition
+		
 		IEE_EmoEngineEventCreate = libEDK.IEE_EmoEngineEventCreate
 		IEE_EmoEngineEventCreate.restype = c_void_p
 		eEvent = IEE_EmoEngineEventCreate()
@@ -130,8 +136,7 @@ class Data(object):
 
 		print "Theta, Alpha, Low_beta, High_beta, Gamma \n"
 		
-		
-		while True:
+		while condition==False:
 			state = libEDK.IEE_EngineGetNextEvent(eEvent)
     
 			if state == 0:
@@ -154,7 +159,6 @@ class Data(object):
 			elif state != 0x0600:
 				print "Internal error in Emotiv Engine ! "
 			
-		
 		print "out"
 		
 		
@@ -190,7 +194,7 @@ if __name__ == '__main__':
 	data=Data()
 	data1 = threading.Thread(target = data.main)
 	pic1 = threading.Thread(target = pic.afficher)
-	data1.setDaemon(True)
+	#data1.setDaemon(True)
 
 	data1.start()
 	pic1.start()
