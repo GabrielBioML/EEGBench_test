@@ -29,11 +29,11 @@ import sys
 import platform
 import ctypes
 import glob
-from random import shuffle
 import threading
 import numpy as np
+import string
 
-
+from random import shuffle
 from array import *
 from ctypes import *
 from __builtin__ import exit
@@ -60,45 +60,12 @@ def setupimage(): #load the picture that will be used
 		for i in range (0,l):
 			imageNST[i]= pygame.image.load(os.path.join(liste[i]))
 		image.extend(imageNST)
-		return [imageNST, image]    #return a list of all the nonstimuli surface all a list of all the surface
+		return [imageNST, image]    #return a list of all the nonstimuli surface 
+									 #all a list of all the surface
 		
-def wait(temps):
-	a = time.clock() + temps
-	b = 0
-	while b < a:
-			b = time.clock()			
-			
-class Picture(object):
-	def __init__(self):
-		self.__picture =setupimage()
-		
-
-	def afficher(self):
-		pygame.init()
-		a = time.time()	
-		L = len(self.__picture[1])
-		r = list(range(L))
-		shuffle(r)
-		for i in r:
-			screen = pygame.display.set_mode((1824, 984))
-			screen.blit(self.__picture[1][i], (0,0))
-			pygame.display.flip()
-			NST = len(self.__picture[1])-len(self.__picture[0])
-			if i < NST:
-				print "stimuli!!!"
-			else:
-				print "non stimuli"
-			self.__picture[1][i].unlock()
-			time.sleep(1)
-		global condition
-		condition = True
-
-class Data(object):
-	def __init__(self):
-		self.__Data = []
-		
-	def main(self):
-		global condition
+def sampling(actualchannellist):#Fonction ran by the data thread that put the
+							        #acquired data in a global matrice for the
+							        #selected channel
 		
 		IEE_EmoEngineEventCreate = libEDK.IEE_EmoEngineEventCreate
 		IEE_EmoEngineEventCreate.restype = c_void_p
@@ -136,7 +103,25 @@ class Data(object):
 
 		print "Theta, Alpha, Low_beta, High_beta, Gamma \n"
 		
-		while condition==False:
+		global condition
+		global matrice
+		
+		m
+		
+		
+		channeldic = {('AF3': 3), ("F7": 4), ('F3': 5), ('FC5': 6), #dictionary 
+					('T7': 7), ('P7' : 8), ('PZ' : 9), ('O1' : 10), #containning
+					('O2': 11), ('P8': 12), ('T8': 13), ('FC6': 14),#the channels'
+					('F4': 15), ('F8': 16), ('AF4': 17)}            #respective 
+																	#list number
+		channelnumberlist = []			
+		
+		for i in range(len(actualchannellist)): #make the list of the actual 
+			channelnumberlist.append(channeldic[actualchannellist[i]]) #channels'
+																	   #numbers 
+		print channelnumberlist
+		
+		while condition == False:
 			state = libEDK.IEE_EngineGetNextEvent(eEvent)
     
 			if state == 0:
@@ -148,20 +133,97 @@ class Data(object):
 					print "User added"
                         
 				if ready == 1:
+					for i in channelnumberlist
 						result = c_int(0)
 						result = libEDK.IEE_GetAverageBandPowers(userID, 1, theta, alpha, low_beta, high_beta, gamma)
-			
+						time = time.time()
                 
 						if result == 0:    #EDK_OK
-							print "%.6f, %.6f, %.6f, %.6f, %.6f \n" % (thetaValue.value, alphaValue.value,
-																		low_betaValue.value, high_betaValue.value, gammaValue.value)
-							
+							matrice = numpy.vstack([matrice, [time, thetaValue.value,
+							alphaValue.value, low_betaValue.value, high_betaValue.value,
+							gammaValue.value]])
 			elif state != 0x0600:
 				print "Internal error in Emotiv Engine ! "
 			
 		print "out"
+	
+
+			
+class Picture(object):
+	def __init__(self):
+		self.__picture =setupimage()
 		
+
+	def afficher(self):
+		pygame.init()
+		a = time.time()	
+		L = len(self.__picture[1])
+		r = list(range(L))
+		shuffle(r)
+		screen = pygame.display.set_mode((1824, 984))
+		for i in r:
+
+			screen.blit(self.__picture[1][i], (0,0))
+			pygame.display.flip()
+			NST = len(self.__picture[1])-len(self.__picture[0])
+			if i < NST:
+				print "stimuli!!!"
+			else:
+				print "non stimuli"
+			self.__picture[1][i].unlock()
+			time.sleep(1)
+		global condition
+		condition = True
+
+class Data(object):
+	def __init__(self):
+		self.__Data = []
 		
+	def main(self):
+		actualchannellist = Data.IniitChans()
+		print actualchannellist
+		sampling(actualchannellist)
+		return 
+		
+	def InitChans(self): #receive channels names from keyboard and identity them. 
+						 #return the channels names in a list
+		channellist = ('AF3', "F7", 'F3', 'FC5', 'T7', 'P7', 'PZ', 'O1',
+						'O2', 'P8', 'T8', 'FC6', 'F4', 'F8', 'AF4')
+		chosenchans = raw_input("Which channels you want to sample?(put a comma between each) \n")
+		channelname = ""
+		newchannellist = []
+		for i in range(len(chosenchans)):
+			newchar = chosenchans[i]
+			newchar = string.capitalize(newchar)
+			found = 0
+			if newchar == " ":
+				time.sleep(0)
+				#this condition is used to ignore spaces
+			elif newchar == ",":  #uses the ',' as a marker to know when the 
+								   #channel's name's border
+				for j in range(len(channellist)):
+					if channelname == channellist[j]:
+						newchannellist.append(channellist[j])
+						channelname = ""
+						found = 1
+						break
+					
+				if found == 0:
+					print channelname, "is not a channel and therefore, will be ignored!"
+					channelname = ""
+			elif i == len(chosenchans)-1 :
+				channelname = channelname+newchar
+				for j in range(len(channellist)):
+					if channelname == channellist[j]:
+						newchannellist.append(channelname)
+						channelname = ""
+						found = 1
+				if found == 0:	
+					print channelname, "is not a channel and therefore, will be ignored!"
+					channelname = ""
+			else:
+				channelname = channelname + newchar
+		return newchannellist
 		
 		
 		
@@ -190,15 +252,22 @@ if __name__ == '__main__':
 	except Exception as e:
 		print 'Error: cannot load EDK lib:', e
 		exit()
-	pic=Picture()
+	
+	
+	#pic=Picture()
 	data=Data()
-	data1 = threading.Thread(target = data.main)
-	pic1 = threading.Thread(target = pic.afficher)
+	#data1 = threading.Thread(target = data.main)
+	#pic1 = threading.Thread(target = pic.afficher)
 	#data1.setDaemon(True)
 
-	data1.start()
-	pic1.start()
-	pic1.join()
+	#data1.start()
+	#pic1.start()
+	#pic1.join()
+	liste = data.InitChans()
+	print liste
+	
+	global matrice
+	print matrice
 	
 	
 
