@@ -38,9 +38,10 @@ from array import *
 from ctypes import *
 from __builtin__ import exit
 
-
-global condition
-condition = False
+global condition1
+global condition2
+condition1 = False
+condition2 = False
 
 
 def setupData(): #Ask for the desired channels then asign them a thread task
@@ -103,25 +104,25 @@ def sampling(actualchannellist):#Fonction ran by the data thread that put the
 
 		print "Theta, Alpha, Low_beta, High_beta, Gamma \n"
 		
-		global condition
+		global condition1
+		global condition2
 		global matrice
 		
-		m
+		matrice = np.zeros((len(actualchannellist), 6, 1))
+		matrice.astype(float)
 		
-		
-		channeldic = {('AF3': 3), ("F7": 4), ('F3': 5), ('FC5': 6), #dictionary 
-					('T7': 7), ('P7' : 8), ('PZ' : 9), ('O1' : 10), #containning
-					('O2': 11), ('P8': 12), ('T8': 13), ('FC6': 14),#the channels'
-					('F4': 15), ('F8': 16), ('AF4': 17)}            #respective 
-																	#list number
+		channeldic = {'AF3': 3, "F7": 4, 'F3': 5, 'FC5': 6, #dictionary containning
+					'T7': 7, 'P7' : 8, 'PZ' : 9, 'O1' : 10, #the channels' 
+					'O2': 11, 'P8': 12, 'T8': 13, 'FC6': 14,
+					'F4': 15, 'F8': 16, 'AF4': 17}         	#respective list number
 		channelnumberlist = []			
 		
 		for i in range(len(actualchannellist)): #make the list of the actual 
 			channelnumberlist.append(channeldic[actualchannellist[i]]) #channels'
 																	   #numbers 
 		print channelnumberlist
-		
-		while condition == False:
+		condition2 = True
+		while condition1 == False:
 			state = libEDK.IEE_EngineGetNextEvent(eEvent)
     
 			if state == 0:
@@ -133,18 +134,22 @@ def sampling(actualchannellist):#Fonction ran by the data thread that put the
 					print "User added"
                         
 				if ready == 1:
-					for i in channelnumberlist
+					newdatamatrice = np.zeros((len(actualchannellist), 6, 1))
+					newdatamatrice.astype(float)
+					for i in range(len(actualchannellist)):
 						result = c_int(0)
-						result = libEDK.IEE_GetAverageBandPowers(userID, 1, theta, alpha, low_beta, high_beta, gamma)
-						time = time.time()
-                
-						if result == 0:    #EDK_OK
-							matrice = numpy.vstack([matrice, [time, thetaValue.value,
-							alphaValue.value, low_betaValue.value, high_betaValue.value,
-							gammaValue.value]])
+						print channeldic[actualchannellist[i]]
+						result = libEDK.IEE_GetAverageBandPowers(userID, channelnumberlist[i], theta, alpha, low_beta, high_beta, gamma)
+						actualtime = float(time.time())
+						newdatamatrice[i,::,0] = (actualtime, thetaValue.value,
+						alphaValue.value, low_betaValue.value, high_betaValue.value,
+						gammaValue.value)
+							
+					matrice = np.concatenate((matrice, newdatamatrice),2)
+							
 			elif state != 0x0600:
 				print "Internal error in Emotiv Engine ! "
-			
+			time.sleep(0.1)
 		print "out"
 	
 
@@ -155,14 +160,14 @@ class Picture(object):
 		
 
 	def afficher(self):
-		pygame.init()
-		a = time.time()	
+		pygame.init()	
 		L = len(self.__picture[1])
 		r = list(range(L))
 		shuffle(r)
-		screen = pygame.display.set_mode((1824, 984))
+		while condition2 == False:
+			time.sleep(0.1)
 		for i in r:
-
+			screen = pygame.display.set_mode((1824, 984))
 			screen.blit(self.__picture[1][i], (0,0))
 			pygame.display.flip()
 			NST = len(self.__picture[1])-len(self.__picture[0])
@@ -172,15 +177,15 @@ class Picture(object):
 				print "non stimuli"
 			self.__picture[1][i].unlock()
 			time.sleep(1)
-		global condition
-		condition = True
+		global condition1
+		condition1 = True
 
 class Data(object):
 	def __init__(self):
 		self.__Data = []
 		
 	def main(self):
-		actualchannellist = Data.IniitChans()
+		actualchannellist = self.InitChans()
 		print actualchannellist
 		sampling(actualchannellist)
 		return 
@@ -223,6 +228,7 @@ class Data(object):
 					channelname = ""
 			else:
 				channelname = channelname + newchar
+		condition2 = True
 		return newchannellist
 		
 		
@@ -253,20 +259,20 @@ if __name__ == '__main__':
 		print 'Error: cannot load EDK lib:', e
 		exit()
 	
+	np.set_printoptions(threshold=np.inf)
 	
-	#pic=Picture()
+	global matrice	
+	pic=Picture()
 	data=Data()
-	#data1 = threading.Thread(target = data.main)
-	#pic1 = threading.Thread(target = pic.afficher)
+	data1 = threading.Thread(target = data.main)
+	pic1 = threading.Thread(target = pic.afficher)
 	#data1.setDaemon(True)
 
-	#data1.start()
-	#pic1.start()
-	#pic1.join()
-	liste = data.InitChans()
-	print liste
+	data1.start()
+	pic1.start()
+	pic1.join()
 	
-	global matrice
+
 	print matrice
 	
 	
