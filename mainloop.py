@@ -128,12 +128,12 @@ def sampling(actualchannellist):#Fonction ran by the data thread that put the
 			if state == 0:
 				eventType = libEDK.IEE_EmoEngineEventGetType(eEvent)
 				libEDK.IEE_EmoEngineEventGetUserId(eEvent, user)
-				if eventType == 16:  # libEDK.IEE_Event_enum.IEE_UserAdded
-					ready = 1
-					libEDK.IEE_FFTSetWindowingType(userID, 1);  # 1: libEDK.IEE_WindowingTypes_enum.IEE_HAMMING
-					print "User added"
+				#if eventType == 16:  # libEDK.IEE_Event_enum.IEE_UserAdded
+				#	ready = 1
+				#	libEDK.IEE_FFTSetWindowingType(userID, 1);  # 1: libEDK.IEE_WindowingTypes_enum.IEE_HAMMING
+				#	print "User added"
                         
-				if ready == 1:
+				if ready == 0:
 					newdatamatrice = np.zeros((len(actualchannellist), 6, 1))
 					newdatamatrice.astype(float)
 					for i in range(len(actualchannellist)):
