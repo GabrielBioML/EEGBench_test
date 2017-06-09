@@ -32,6 +32,7 @@ import glob
 import threading
 import numpy as np
 import string
+import matplotlib.pyplot as plt
 
 from random import shuffle
 from array import *
@@ -43,10 +44,6 @@ global condition2
 condition1 = False
 condition2 = False
 
-
-def setupData(): #Ask for the desired channels then asign them a thread task
-				 #for each of them
-		return 0
 
 def setupimage(): #load the picture that will be used
 		
@@ -108,7 +105,7 @@ def sampling(actualchannellist):#Fonction ran by the data thread that put the
 		global condition2
 		global matrice
 		
-		matrice = np.zeros((len(actualchannellist), 6, 1))
+		matrice = np.zeros((len(actualchannellist), 6, 0))
 		matrice.astype(float)
 		
 		channeldic = {'AF3': 3, "F7": 4, 'F3': 5, 'FC5': 6, #dictionary containning
@@ -160,6 +157,8 @@ class Picture(object):
 		
 
 	def afficher(self):
+		global stimulitime
+		stimulitime = []
 		pygame.init()	
 		L = len(self.__picture[1])
 		r = list(range(L))
@@ -172,20 +171,22 @@ class Picture(object):
 			pygame.display.flip()
 			NST = len(self.__picture[1])-len(self.__picture[0])
 			if i < NST:
-				print "stimuli!!!"
+				stimulitime.append(time.time())
 			else:
 				print "non stimuli"
 			self.__picture[1][i].unlock()
 			time.sleep(1)
+		time.sleep(10)
 		global condition1
 		condition1 = True
 
 class Data(object):
 	def __init__(self):
 		self.__Data = []
+		self.__Channels = self.InitChans()
 		
 	def main(self):
-		actualchannellist = self.InitChans()
+		actualchannellist = self.__Channels
 		print actualchannellist
 		sampling(actualchannellist)
 		return 
@@ -231,7 +232,21 @@ class Data(object):
 		condition2 = True
 		return newchannellist
 		
-		
+	def DataPlot(self):
+		global matrice 
+		global stimulitime
+		stimval = np.ones(len(stimulitime))
+		wave = ['Theta', 'Alpha', 'Low_beta', 'High_beta', 'Gamma']
+		for i in range(len(self.__Channels)):
+			self.__Channels[i] = plt.figure(i+1)
+			for j in range(4):
+				x = 231 + j
+				wave[j+1] = self.__Channels[i].add_subplot(x)
+				wave[j+1].plot(matrice[i, 0, ::], matrice[i,j+1,::], 'r--', 
+				stimulitime, stimval, 'k')
+		plt.show()
+		sleep(10)
+	
 		
 if __name__ == '__main__':
 	if sys.platform.startswith('win32'):
@@ -262,6 +277,7 @@ if __name__ == '__main__':
 	np.set_printoptions(threshold=np.inf)
 	
 	global matrice	
+	global stimulitime
 	pic=Picture()
 	data=Data()
 	data1 = threading.Thread(target = data.main)
@@ -272,9 +288,10 @@ if __name__ == '__main__':
 	pic1.start()
 	pic1.join()
 	
-
-	print matrice
 	
+	print stimulitime
+	print matrice
+	data.DataPlot() 
 	
 
 	
