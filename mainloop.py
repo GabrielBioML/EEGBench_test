@@ -39,12 +39,6 @@ from array import *
 from ctypes import *
 from __builtin__ import exit
 
-global condition1
-global condition2
-condition1 = False
-condition2 = False
-
-
 def setupimage(): #load the picture that will be used
 		
 		liste = glob.glob('/home/pi/Documents/EEGBench_test/Images/stimuli*') #find all the pictures that represent a stimuli
@@ -61,7 +55,7 @@ def setupimage(): #load the picture that will be used
 		return [imageNST, image]    #return a list of all the nonstimuli surface 
 									 #all a list of all the surface
 		
-def sampling(actualchannellist):#Fonction ran by the data thread that put the
+def sampling(actualchannellist, start, stop, flagstimuli, flagnonstimuli, ):#Fonction ran by the data thread that put the
 							        #acquired data in a global matrice for the
 							        #selected channel
 		
@@ -101,11 +95,11 @@ def sampling(actualchannellist):#Fonction ran by the data thread that put the
 
 		print "Theta, Alpha, Low_beta, High_beta, Gamma \n"
 		
-		global condition1
-		global condition2
 		global matrice
+		start.clear()
 		
-		matrice = np.zeros((len(actualchannellist), 6, 0))
+		
+		matrice = np.zeros((len(actualchannellist), 7, 0))
 		matrice.astype(float)
 		
 		channeldic = {'AF3': 3, "F7": 4, 'F3': 5, 'FC5': 6, #dictionary containning
@@ -118,10 +112,10 @@ def sampling(actualchannellist):#Fonction ran by the data thread that put the
 			channelnumberlist.append(channeldic[actualchannellist[i]]) #channels'
 																	   #numbers 
 		print channelnumberlist
-		condition2 = True
-		while condition1 == False:
+		start.set()
+		while not stop.is_set() :
 			state = libEDK.IEE_EngineGetNextEvent(eEvent)
-    
+			flag = 0
 			if state == 0:
 				eventType = libEDK.IEE_EmoEngineEventGetType(eEvent)
 				libEDK.IEE_EmoEngineEventGetUserId(eEvent, user)
@@ -131,23 +125,29 @@ def sampling(actualchannellist):#Fonction ran by the data thread that put the
 				#	print "User added"
                         
 				if ready == 0:
-					newdatamatrice = np.zeros((len(actualchannellist), 6, 1))
+					newdatamatrice = np.zeros((len(actualchannellist), 7, 1))
 					newdatamatrice.astype(float)
+					if flagstimuli.is_set() == True:
+						flag = 1
+						flagstimuli.clear()
+					if flagnonstimuli.is_set() == True:
+						flag = 2
+						flagnonstimuli.clear()
 					for i in range(len(actualchannellist)):
 						result = c_int(0)
-						print channeldic[actualchannellist[i]]
+						#print channeldic[actualchannellist[i]]
 						result = libEDK.IEE_GetAverageBandPowers(userID, channelnumberlist[i], theta, alpha, low_beta, high_beta, gamma)
 						actualtime = float(time.time())
 						newdatamatrice[i,::,0] = (actualtime, thetaValue.value,
 						alphaValue.value, low_betaValue.value, high_betaValue.value,
-						gammaValue.value)
+						gammaValue.value, flag)
 							
 					matrice = np.concatenate((matrice, newdatamatrice),2)
 							
 			elif state != 0x0600:
 				print "Internal error in Emotiv Engine ! "
 			time.sleep(0.1)
-		print "out"
+		#print "out"
 	
 
 			
@@ -156,39 +156,37 @@ class Picture(object):
 		self.__picture =setupimage()
 		
 
-	def afficher(self):
-		global stimulitime
-		stimulitime = []
+	def afficher(self, start, stop, flagstimuli, flagnonstimuli, ):
+		stop.clear()
+		flagstimuli.clear()
+		flagnonstimuli.clear()
 		pygame.init()	
 		L = len(self.__picture[1])
 		r = list(range(L))
 		shuffle(r)
-		while condition2 == False:
-			time.sleep(0.1)
+		start.wait()
 		for i in r:
 			screen = pygame.display.set_mode((1824, 984))
 			screen.blit(self.__picture[1][i], (0,0))
 			pygame.display.flip()
 			NST = len(self.__picture[1])-len(self.__picture[0])
 			if i < NST:
-				stimulitime.append(time.time())
+				flagstimuli.set()
 			else:
-				print "non stimuli"
+				flagnonstimuli.set()
 			self.__picture[1][i].unlock()
-			time.sleep(1)
-		time.sleep(10)
-		global condition1
-		condition1 = True
+			time.sleep(2)
+		stop.set()
 
 class Data(object):
 	def __init__(self):
 		self.__Data = []
 		self.__Channels = self.InitChans()
 		
-	def main(self):
+	def main(self, start, stop, flagstimuli, flagnonstimuli, ):
 		actualchannellist = self.__Channels
-		print actualchannellist
-		sampling(actualchannellist)
+		#print actualchannellist
+		sampling(actualchannellist, start, stop, flagstimuli, flagnonstimuli)
 		return 
 		
 	def InitChans(self): #receive channels names from keyboard and identity them. 
@@ -229,23 +227,28 @@ class Data(object):
 					channelname = ""
 			else:
 				channelname = channelname + newchar
-		condition2 = True
 		return newchannellist
 		
 	def DataPlot(self):
 		global matrice 
-		global stimulitime
-		stimval = np.ones(len(stimulitime))
 		wave = ['Theta', 'Alpha', 'Low_beta', 'High_beta', 'Gamma']
+		name = ['Subplot1', 'Subplot2', 'Subplot3', 'Subplot4', 'Subplot5'] 
+		nbdata = matrice.shape()
+		print nbdata
+		
+		for i in range(nbdata[2]):
+			#find the stimuli and nonstimuli position and use them to set color and
+			#sampling window
 		for i in range(len(self.__Channels)):
-			self.__Channels[i] = plt.figure(i+1)
-			for j in range(4):
+			fig = '{}{}'.format('fig_', i)
+			fig = plt.figure(i+1)
+			fig.canvas.set_window_title('{}'.format(self.__Channels[i]))
+			for j in range(5):
 				x = 231 + j
-				wave[j+1] = self.__Channels[i].add_subplot(x)
-				wave[j+1].plot(matrice[i, 0, ::], matrice[i,j+1,::], 'r--', 
-				stimulitime, stimval, 'k')
+				name[j] = fig.add_subplot(x)
+				name[j].plot(matrice[i, 0, ::], matrice[i,j+1,::], 'r--')
+				name[j].set_title(wave[j])
 		plt.show()
-		sleep(10)
 	
 		
 if __name__ == '__main__':
@@ -277,19 +280,22 @@ if __name__ == '__main__':
 	np.set_printoptions(threshold=np.inf)
 	
 	global matrice	
-	global stimulitime
 	pic=Picture()
 	data=Data()
-	data1 = threading.Thread(target = data.main)
-	pic1 = threading.Thread(target = pic.afficher)
+	start = threading.Event()
+	stop = threading.Event()
+	flagstimuli = threading.Event()
+	flagnonstimuli = threading.Event()
+	data1 = threading.Thread(target = data.main, args = (start, stop, 
+	flagstimuli, flagnonstimuli, ))
+	pic1 = threading.Thread(target = pic.afficher, args = (start, stop, 
+	flagstimuli, flagnonstimuli,  ))
 	#data1.setDaemon(True)
 
 	data1.start()
 	pic1.start()
 	pic1.join()
 	
-	
-	print stimulitime
 	print matrice
 	data.DataPlot() 
 	
