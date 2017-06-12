@@ -233,21 +233,42 @@ class Data(object):
 		global matrice 
 		wave = ['Theta', 'Alpha', 'Low_beta', 'High_beta', 'Gamma']
 		name = ['Subplot1', 'Subplot2', 'Subplot3', 'Subplot4', 'Subplot5'] 
-		nbdata = matrice.shape()
-		print nbdata
+		nbdata = matrice.shape
+		print nbdata[2]
 		
-		for i in range(nbdata[2]):
 			#find the stimuli and nonstimuli position and use them to set color and
 			#sampling window
 		for i in range(len(self.__Channels)):
+			listeimages = []       #liste qui contiendra les tuples des positons des images dans la matrice
+								   #La deuxieme valeur du tuple indique si l,image est un stimuli ou non
+			for j in range(nbdata[2]):
+				if matrice[i, 6, j] == 1:
+					listeimages.append((j, 1))
+				elif matrice[i, 6, j] == 2:
+					listeimages.append((j, 2))
 			fig = '{}{}'.format('fig_', i)
 			fig = plt.figure(i+1)
 			fig.canvas.set_window_title('{}'.format(self.__Channels[i]))
-			for j in range(5):
-				x = 231 + j
-				name[j] = fig.add_subplot(x)
-				name[j].plot(matrice[i, 0, ::], matrice[i,j+1,::], 'r--')
-				name[j].set_title(wave[j])
+			for k in range(5):
+				x = 231 + k
+				name[k] = fig.add_subplot(x)
+				print 'wtf'
+				print len(listeimages)
+				for l in range(len(listeimages)-1):
+					print listeimages[l][1]
+					if listeimages[l][1] == 1: 
+						color = 'r--'   #stimuli!!! (seront en rouge)
+					if listeimages[l][1] == 2:
+						color = 'b'
+					if l == len(listeimages):
+						temps = np.subtract(matrice[i, 0, listeimages[l][0]:-1], matrice[i, 0 , listeimages[l][0]])
+						print temps
+						name[k].plot(temps, matrice[i,k+1,listeimages[l][0]:-1], color)
+					else:
+						temps = np.subtract(matrice[i, 0, listeimages[l][0]:listeimages[l+1][0]], matrice[i, 0 , listeimages[l][0]])
+						print temps
+						name[k].plot(temps, matrice[i,k+1,listeimages[l][0]:listeimages[l+1][0]], color)
+				name[k].set_title(wave[k])
 		plt.show()
 	
 		
