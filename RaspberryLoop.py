@@ -24,6 +24,7 @@
 import pygame
 import os
 import time
+import RingBuffer
 import sys
 import platform
 import ctypes
@@ -59,7 +60,7 @@ class Data(object):
 		self.__Data            = self.setupData()
 		self.__DataProcess     = self.DataProcess()
 		self.__DataThreads     = self.DataThreads()
-		self.__RingBuffer      = RingBuffer()
+		self.__RingBuffer      = RingBuffer(2000,10,6)
 		self.__DataStimulation = Picture()
 		self.__DataQueue       = multiprocessing.queue()
 		self.__ChannelQueue    = multiproccessing.queue()
@@ -106,20 +107,24 @@ class Data(object):
 		return newchannellist
 	
 	def DataProcess(self):
-		return 0
+		self.__process = multiproccessing.Process(DataRead, )
+		self.__process.start
 		
 	def DataThreads(self):
 		return 0
 	
-	def SendData(self):
+	def SendAnalysedData(self):
 		#Fonction qui envoiera les donnees a l'ordinateur
+		
 		return 0
 	
 	def DataWrite(self, channelList):
 		channel = self.__ChannelQueue.get()
 		data    = self.__DataQueue.get()
 		
-		RingBuffer.write # A completer...
+		data.append(channel)
+		
+		RingBuffer.Writer(data)
 		
 	def DataRead(self, newchannellist): #channelList est la liste des numeros des canaux choisis
 		#quickly sample the headset (READ) signal
@@ -161,6 +166,8 @@ class Data(object):
 			self.__ChannelQueue.put(channel[i])
 		
 	def Main(self):
+		
+		return 0
 		
 
 def main():
