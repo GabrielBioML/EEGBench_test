@@ -145,7 +145,6 @@ def sampling(actualchannellist, start, stop, flagstimuli, flagnonstimuli, ):#Fon
 							
 			elif state != 0x0600:
 				print "Internal error in Emotiv Engine ! "
-			time.sleep(0.1)
 		#print "out"
 	
 
@@ -276,7 +275,46 @@ class Data(object):
 						name[k].plot(temps, matrice[i,k+1,listeimages[l][0]:listeimages[l+1][0]], color)
 				name[k].set_title(wave[k])
 		plt.show()
-	
+	def DataPlotB(self):
+		global matrice 
+		wave = ['Theta', 'Alpha', 'Low_beta', 'High_beta', 'Gamma']
+		name = ['Subplot1', 'Subplot2', 'Subplot3', 'Subplot4', 'Subplot5'] 
+		nbdata = matrice.shape
+		print nbdata[2]
+		
+			#find the stimuli and nonstimuli position and use them to set color and
+			#sampling window
+		listeimages = []       #liste qui contiendra les tuples des positons des images dans la matrice
+								   #La deuxieme valeur du tuple indique si l'image est un stimuli ou non
+		for j in range(nbdata[2]):
+			if matrice[0, 6, j] == 1:
+				listeimages.append((j, 1))
+			elif matrice[0, 6, j] == 2:
+				listeimages.append((j, 2))
+		fig = '{}{}'.format('fig_', 1)
+		fig = plt.figure(1)
+		fig.canvas.set_window_title('{}-{}'.format(self.__Channels[0], self.__Channels[1]))
+		for k in range(5):
+			x = 231 + k
+			name[k] = fig.add_subplot(x)
+			print len(listeimages)
+			for l in range(len(listeimages)-1):
+				print listeimages[l][1]
+				if listeimages[l][1] == 1: 
+					color = 'r--'   #stimuli!!! (seront en rouge)
+				if listeimages[l][1] == 2:
+					color = 'b'
+				if l == len(listeimages):
+					temps = np.subtract(matrice[0, 0, listeimages[l][0]:-1], matrice[0, 0 , listeimages[l][0]])
+					print temps
+					valeurs = np.subtract(matrice[0, k+1, listeimages[l][0]:-1], matrice[1, k+1, listeimages[l][0]: -1])
+					name[k].plot(temps, valeurs, color)
+				else:
+					temps = np.subtract(matrice[0, 0, listeimages[l][0]:listeimages[l+1][0]], matrice[0, 0 , listeimages[l][0]])
+					valeurs = np.subtract(matrice[0, k+1, listeimages[l][0]:listeimages[l+1][0]], matrice[1, k+1, listeimages[l][0]:listeimages[l+1][0]])
+					name[k].plot(temps, matrice[0,k+1,listeimages[l][0]:listeimages[l+1][0]], color)
+			name[k].set_title(wave[k])
+		plt.show()
 		
 if __name__ == '__main__':
 	if sys.platform.startswith('win32'):
@@ -324,7 +362,7 @@ if __name__ == '__main__':
 	pic1.join()
 	
 	print matrice
-	data.DataPlot() 
+	data.DataPlotB() 
 	
 
 	
