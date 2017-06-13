@@ -40,19 +40,18 @@ from ctypes import *
 from __builtin__ import exit
 
 def setupimage(): #load the picture that will be used
-		
-		liste = glob.glob('/home/pi/Documents/EEGBench_test/Images/stimuli*') #find all the pictures that represent a stimuli
-		n = len(liste)
-		image=[None] * n
-		for i in range (0,n):
-			image[i]= pygame.image.load(os.path.join(liste[i]))
+		n = 5 #nombre de stimuli
+		stimuli = glob.glob('/home/pi/Documents/EEGBench_test/Images/stimuli*') #find all the pictures that represent a stimuli
+		image = [pygame.image.load(os.path.join(stimuli[0]))] * n
 		liste = glob.glob('/home/pi/Documents/EEGBench_test/Images/nonstimuli*') #find all the pictures that represent a non-stimuli
 		l = len(liste)
-		imageNST=[None] * l
+		imageNST=[None] * l * n
 		for i in range (0,l):
-			imageNST[i]= pygame.image.load(os.path.join(liste[i]))
+			for j in range(n):
+				imageNST[i + (j*l)]= pygame.image.load(os.path.join(liste[i]))
 		image.extend(imageNST)
-		return [imageNST, image]    #return a list of all the nonstimuli surface 
+		info = [pygame.image.load(os.path.join('/home/pi/Documents/EEGBench_test/Images/StarttestA.png')), pygame.image.load(os.path.join('/home/pi/Documents/EEGBench_test/Images/Interlude.png'))]
+		return [imageNST, image, info]    #return a list of all the nonstimuli surface 
 									 #all a list of all the surface
 		
 def sampling(actualchannellist, start, stop, flagstimuli, flagnonstimuli, ):#Fonction ran by the data thread that put the
@@ -165,6 +164,10 @@ class Picture(object):
 		r = list(range(L))
 		shuffle(r)
 		start.wait()
+		screen = pygame.display.set_mode((1824, 984))
+		screen.blit(self.__picture[2][0], (0,0))
+		pygame.display.flip()
+		time.sleep(15)
 		for i in r:
 			screen = pygame.display.set_mode((1824, 984))
 			screen.blit(self.__picture[1][i], (0,0))
@@ -175,7 +178,10 @@ class Picture(object):
 			else:
 				flagnonstimuli.set()
 			self.__picture[1][i].unlock()
-			time.sleep(2)
+			time.sleep(1)
+			screen.blit(self.__picture[2][1], (0,0))
+			pygame.display.flip()
+			time.sleep(1)
 		stop.set()
 
 class Data(object):
