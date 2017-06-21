@@ -105,7 +105,8 @@ def sampling(actualchannellist, start, stop, flagstimuli, flagnonstimuli, ):#Fon
 					'T7': 7, 'P7' : 8, 'PZ' : 9, 'O1' : 10, #the channels' 
 					'O2': 11, 'P8': 12, 'T8': 13, 'FC6': 14,
 					'F4': 15, 'F8': 16, 'AF4': 17}         	#respective list number
-		channelnumberlist = []			
+		channelnumberlist = []	
+			
 		
 		for i in range(len(actualchannellist)): #make the list of the actual 
 			channelnumberlist.append(channeldic[actualchannellist[i]]) #channels'
@@ -209,7 +210,7 @@ class Data(object):
 				time.sleep(0)
 				#this condition is used to ignore spaces
 			elif newchar == ",":  #uses the ',' as a marker to know when the 
-								   #channel's name's border
+								   #channel's name ends
 				for j in range(len(channellist)):
 					if channelname == channellist[j]:
 						newchannellist.append(channellist[j])

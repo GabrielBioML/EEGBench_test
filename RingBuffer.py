@@ -24,21 +24,18 @@
 
 
 # all import here
-import alsaaudio as alsa
+#import alsaaudio as alsa
 from multiprocessing import Process, Queue , Lock
 import numpy as np
 import math
 import struct
 import array
 import time
-import DSP
+#import DSP
 import wave
 import os
 from threading import Thread , Semaphore
-import alsaaudio as alsa
-import struct
-import DSP
-import Limiter
+#import Limiter
 
 __author__="Quentin MASCRET <quentin.mascret.1@ulaval.ca>"
 __date__="2017-06-07"
@@ -127,19 +124,19 @@ class RingBuffer(object):
 
 
 
-		def __readUSB(self) :
-				card='sysdefault:CARD=Device'  # define default recording card 
-				inp = alsa.PCM(alsa.PCM_CAPTURE, alsa.PCM_NORMAL,card) 
-				inp.setchannels(1) # number of channels
-				inp.setrate(8000) # sample  rate
-				inp.setformat(alsa.PCM_FORMAT_S16_LE) # format of sample
-				inp.setperiodsize(8000 / 50) # buffer period size
-				print  "In alsa_record - Audio Device is correctly parameted" 
-				Compressor=Limiter._Limiter()
-				while True :
-						frame_count, data = inp.read()
-						if frame_count :
-							self.__USBData.put(Compressor.arctan_compressor(DSP.normalize(self.pseudonymize(data), 32768.0)))
+		#def __readUSB(self) :
+			#	card='sysdefault:CARD=Device'  # define default recording card 
+			#	inp = alsa.PCM(alsa.PCM_CAPTURE, alsa.PCM_NORMAL,card) 
+			#	inp.setchannels(1) # number of channels
+			#	inp.setrate(8000) # sample  rate
+			#	inp.setformat(alsa.PCM_FORMAT_S16_LE) # format of sample
+			#	inp.setperiodsize(8000 / 50) # buffer period size
+			#	print  "In alsa_record - Audio Device is correctly parameted" 
+			#	Compressor=Limiter._Limiter()
+			#	while True :
+			#			frame_count, data = inp.read()
+			#			if frame_count :
+			#				self.__USBData.put(Compressor.arctan_compressor(DSP.normalize(self.pseudonymize(data), 32768.0)))
 
 		def readUSB(self):
 				return self.__USBData.get()
