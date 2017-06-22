@@ -45,14 +45,13 @@ __version__="1.0-dev"
 class RingBuffer(object):
 
 		"""  Initialize ring buffer """
-		def __init__(self,length,window_sample,step_sample):
+		def __init__(self,length,window_sample):
 				self.__tail=0
 				self.__head=0
 				self.__flag=0
 				self.__MaxLen=length
 				self.__data=np.zeros(length)
 				self.__window=window_sample
-				self.__step=step_sample
 				
 				## semaphore & Lock
 				self.__RessourceAccess= Semaphore(1)
@@ -81,9 +80,11 @@ class RingBuffer(object):
 						print " ##### Overwrite #####" , self.__tail , self.__head
 						return -1
 				data_index=(self.__head + np.arange(len(data)))
+				#print "index :", data_index, "head :", self.__head, "tail :", self.__tail 
 				self.__data[data_index]=data
 				self.__head=Next
 				return 0
+				
 		def Reader(self):
 				self.__ServiceQueue.acquire()
 				with self.__ReadCountAccess :
@@ -117,7 +118,7 @@ class RingBuffer(object):
 							temp_beg=(0+np.arange(self.__window-temp_end.size))
 							idx= np.concatenate([temp_end,temp_beg])
 				self.__ReadQueue.put(self.__data[idx])
-				self.__tail+=self.__step
+				self.__tail=Next
 				if (self.__tail >= self.__MaxLen ):
 						self.__tail = self.__tail - self.__MaxLen
 				return 0

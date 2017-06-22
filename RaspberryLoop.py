@@ -48,7 +48,7 @@ class Data(object):
 		self.__DataStimulation   = _Picture_()
 		self.__DataProcess       = self.DataProcess()
 		self.__DataThreads       = self.DataThreads()
-		self.__DataRingBuffer    = RingBuffer(2000,10,6)
+		self.__DataRingBuffer    = RingBuffer(1200,6)
 		self.__DataQueue         = multiprocessing.Queue()
 		self.__SampleRate        = 10 #Hertz
 	def setupData(self): #Initialisation des canaux
@@ -104,15 +104,18 @@ class Data(object):
 	def DataRead(self):
 		#Fonction qui envoiera les donnees a l'ordinateur
 		while True:		
-			data    = self.__DataRingBuffer.Reader()
+			data    = self.__DataRingBuffer.Treatment()
 			print data
 			
 	def DataWrite(self):
 		while True:  #Mets les donnees du casque dans un buffer
-			
-			data    = self.__DataQueue.get()
-			self.__DataRingBuffer.Writer(data)
-			print "Wrote!"
+			if not self.__DataQueue.empty():
+				#print "Queue Empty"
+				#print "start DataWrite"
+				data    = self.__DataQueue.get()
+				#print data
+				self.__DataRingBuffer.Writer(data)
+				#print "Wrote!"
 		
 	def DataSample(self): #channelList est la liste des noms des canaux choisis
 		#quickly sample the headset (READ) signal
@@ -175,8 +178,8 @@ class Data(object):
 		
 		self.__DataImages.start()
 		self.__process.start()
-		self.__DataRead.start()
 		self.__DataWrite.start()
+		self.__DataRead.start()
 		
 		self.__DataImages.join()
 		self.__process.join()
