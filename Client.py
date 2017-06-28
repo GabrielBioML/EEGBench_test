@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #
-#  server.py
+#  Client.py
 #  
 #  Copyright 2017  <pi@raspberrypi>
 #  
@@ -22,25 +22,23 @@
 #  
 #  
 
-
-import socket
 import sys
+import socket
+
+SERVER_IP = '192.168.137.1'
 PORT_NUMBER = 5002
-SIZE = 4096
+SIZE = 1024
+print ("Test client sending packages to IP {0}, via port {1}\n".format(SERVER_IP, PORT_NUMBER))
 
+mySocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+myMessage = "Hello"
+myMessage1 = ""
+i = 0
 
-hostname = socket.gethostbyname('0.0.0.0')
+while i < 10:
+	mySocket.sendto(myMessage.encode('utf-8'), (SERVER_IP,PORT_NUMBER))
+	i += 1
 
+mySocket.sendto(myMessage1.encode('utf-8'), (SERVER_IP,PORT_NUMBER))
 
-mySocket = socket.socket( socket.AF_INET, socket.SOCK_STREAM)
-mySocket.bind( (hostname, PORT_NUMBER) )
-mySocket.listen(1)
-(conn, addr) = mySocket.accept()
-
-print ("Test server listening on port {0}\n".format(PORT_NUMBER))
-
-while True:
-	(data, address) = conn.recv(SIZE)
-	print data
-	conn.sendall(data)
 sys.exit()

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #
-#  server.py
+#  client2.py
 #  
 #  Copyright 2017  <pi@raspberrypi>
 #  
@@ -22,25 +22,21 @@
 #  
 #  
 
-
+import os
 import socket
-import sys
-PORT_NUMBER = 5002
-SIZE = 4096
 
-
-hostname = socket.gethostbyname('0.0.0.0')
-
-
-mySocket = socket.socket( socket.AF_INET, socket.SOCK_STREAM)
-mySocket.bind( (hostname, PORT_NUMBER) )
-mySocket.listen(1)
-(conn, addr) = mySocket.accept()
-
-print ("Test server listening on port {0}\n".format(PORT_NUMBER))
-
+host = ""
+port = 5000
+buf  = 1024
+addr = (host, port)
+UDPSock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+UDPSock.bind(addr)
+print "Waiting to receive messages..."
 while True:
-	(data, address) = conn.recv(SIZE)
-	print data
-	conn.sendall(data)
-sys.exit()
+	(data, addr) = UPDSock.recvfrom(buf)
+	print "Received message:" + data
+	if data == "exit":
+		break
+UDPSock.close()
+os.exit()
+	
