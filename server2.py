@@ -29,14 +29,14 @@ host = ""
 port = 5000
 buf  = 1024
 addr = (host, port)
-UDPSock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-UDPSock.bind(addr)
+UPDSock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+UPDSock.bind(addr)
 print "Waiting to receive messages..."
 while True:
 	(data, addr) = UPDSock.recvfrom(buf)
 	print "Received message:" + data
 	if data == "exit":
 		break
-UDPSock.close()
+UPDSock.close()
 os.exit()
 	

@@ -25,7 +25,7 @@
 import sys
 import socket
 
-SERVER_IP = '192.168.137.1'
+SERVER_IP = '192.168.1.108'
 PORT_NUMBER = 5002
 SIZE = 1024
 print ("Test client sending packages to IP {0}, via port {1}\n".format(SERVER_IP, PORT_NUMBER))

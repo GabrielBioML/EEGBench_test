@@ -52,15 +52,15 @@ class _Picture_(object):
 		self.__picture =setupimage()
 		
 
-	def afficher(self): #, start, stop, flagstimuli, flagnonstimuli, ):
-		#stop.clear()
+	def afficher(self, start, stop,): # flagstimuli, flagnonstimuli, ):
+		stop.clear()
 		#flagstimuli.clear()
 		#flagnonstimuli.clear()
 		pygame.init()	
 		L = len(self.__picture[1])
 		r = list(range(L))
 		shuffle(r)
-		#start.wait()
+		start.wait()
 		screen = pygame.display.set_mode((1824, 984))
 		screen.blit(self.__picture[2][0], (0,0))
 		pygame.display.flip()
@@ -81,4 +81,8 @@ class _Picture_(object):
 			screen.blit(self.__picture[2][1], (0,0))
 			pygame.display.flip()
 			time.sleep(1)
-		#stop.set()
+			if stop.is_set():
+				pygame.quit()
+				break
+		pygame.quit()
+		stop.set()

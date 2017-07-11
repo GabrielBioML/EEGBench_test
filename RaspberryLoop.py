@@ -31,9 +31,11 @@ import ctypes
 import glob
 import threading
 import multiprocessing
+import Queue
 import numpy             as np
 import string
 import matplotlib.pyplot as plt
+import socket
 
 from Picture     import _Picture_
 from RingBuffer  import RingBuffer
@@ -44,13 +46,17 @@ from __builtin__ import exit
 
 class Data(object):
 	def __init__(self):
-		self.__Channels              = self.setupData()
+		self.startEv             = threading.Event()
+		self.stopEv              = threading.Event()
+		self.IPEv                = threading.Event()
+		self.IPQueue             = Queue.Queue()
+		self.__Channels          = self.setupData()
 		self.__DataStimulation   = _Picture_()
 		self.__DataProcess       = self.DataProcess()
 		self.__DataThreads       = self.DataThreads()
 		self.__DataRingBuffer    = RingBuffer(1200,6)
 		self.__DataQueue         = multiprocessing.Queue()
-		self.__SampleRate        = 10 #Hertz
+
 	def setupData(self): #Initialisation des canaux
 		 #receive channels names from keyboard and idenfity them. 
 						 #return the channels names in a list
@@ -97,18 +103,30 @@ class Data(object):
 		self.__process = multiprocessing.Process(target = self.DataSample, )
 		
 	def DataThreads(self):
-		self.__DataRead   = threading.Thread(target = self.DataRead, )
-		self.__DataWrite  = threading.Thread(target = self.DataWrite,)
-		self.__DataImages = threading.Thread(target = self.__DataStimulation.afficher, )
+		self.__DataRead   = threading.Thread(target = self.DataRead)
+		self.__DataWrite  = threading.Thread(target = self.DataWrite)
+		self.__DataImages = threading.Thread(target = self.__DataStimulation.afficher, args = (self.startEv, self.stopEv, ))
+		self.__PClisten   = threading.Thread(target = self.SocketManagment)
 	
 	def DataRead(self):
 		#Fonction qui envoiera les donnees a l'ordinateur
-		while True:		
+		self.startEv.wait()
+		self.IPEv.wait()
+		host = self.IPQueue.get()
+		print host
+		port = 6000
+		addr = (host, port)
+		PItoPCSock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+		while not self.stopEv.is_set():		
 			data    = self.__DataRingBuffer.Treatment()
-			print data
+			print 'Sent:', data
+			data = data.tostring()
+			PItoPCSock.sendto(data, addr)
+		PItoPCSock.close()
 			
 	def DataWrite(self):
-		while True:  #Mets les donnees du casque dans un buffer
+		self.startEv.wait()
+		while not self.stopEv.is_set():  #Mets les donnees du casque dans un buffer
 			if not self.__DataQueue.empty():
 				#print "Queue Empty"
 				#print "start DataWrite"
@@ -117,8 +135,9 @@ class Data(object):
 				self.__DataRingBuffer.Writer(data)
 				#print "Wrote!"
 		
-	def DataSample(self): #channelList est la liste des noms des canaux choisis
-		#quickly sample the headset (READ) signal
+	def DataSample(self):#quickly sample the headset (READ) signal
+		#channelList est la liste des noms des canaux choisis
+		
 		
 			IEE_EmoEngineEventCreate         = libEDK.IEE_EmoEngineEventCreate
 			IEE_EmoEngineEventCreate.restype = c_void_p
@@ -158,9 +177,9 @@ class Data(object):
 				print "Emotiv Engine start up failed."
 				exit();
 
-			print "Theta, Alpha, Low_beta, High_beta, Gamma \n"		
-			while True:
-				
+			
+			while not self.stopEv.is_set():
+				#print "Theta, Alpha, Low_beta, High_beta, Gamma \n"		
 				state = libEDK.IEE_EngineGetNextEvent(eEvent)
 				if state == 0:
 					eventType = libEDK.IEE_EmoEngineEventGetType(eEvent)
@@ -172,19 +191,46 @@ class Data(object):
 						if Data == 0:
 							self.__DataQueue.put(np.array([channel[self.__Channels[i]], thetaValue.value, alphaValue.value, low_betaValue.value, high_betaValue.value, gammaValue.value]))
 							i = (i+1)%L
-		
+	
+	def SocketManagment(self):
+
+		host = ""
+		port = 5000
+		buf  = 1024
+		addr = (host, port)
+		PCtoPISock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+		PCtoPISock.bind(addr)
+		print "Waiting For PC"
+		self.startEv.clear()
+		self.stopEv.clear()
+		self.IPEv.clear()
+		while True:
+			
+			(data, addr) = PCtoPISock.recvfrom(buf)
+			print addr
+			print "Data: ", data
+			if data == "Start":
+				self.startEv.set()
+			if data == "Stop":
+				self.stopEv.set()	
+			if data == "IP":
+				print addr[0]
+				self.IPQueue.put(addr[0])
+				self.IPEv.set()
 	def Main(self):
 
-		
 		self.__DataImages.start()
-		self.__process.start()
 		self.__DataWrite.start()
 		self.__DataRead.start()
+		self.__PClisten.start()
+		self.__process.start()	
 		
+			
 		self.__DataImages.join()
 		self.__process.join()
 		self.__DataRead.join()
 		self.__DataWrite.join()
+		self.__PClisten.join()
 		
 		
 		return 0
