@@ -26,16 +26,19 @@ import os
 import time
 import RingBuffer
 import sys
+sys.path.insert(0, '/home/pi/Documents/EEGBench_test/emokit-master/python/emokit')
 import platform
 import ctypes
 import glob
 import threading
 import multiprocessing
-import Queue
 import numpy             as np
 import string
 import matplotlib.pyplot as plt
 import socket
+
+from emotiv import Emotiv
+from python_queue import Queue
 
 from Picture     import _Picture_
 from RingBuffer  import RingBuffer
@@ -49,13 +52,13 @@ class Data(object):
 		self.startEv             = threading.Event()
 		self.stopEv              = threading.Event()
 		self.IPEv                = threading.Event()
-		self.IPQueue             = Queue.Queue()
-		self.__Channels          = self.setupData()
+		self.IPQueue             = Queue()
+		self.__Channels          = []#self.setupData()
 		self.__DataStimulation   = _Picture_()
-		self.__DataProcess       = self.DataProcess()
 		self.__DataThreads       = self.DataThreads()
-		self.__DataRingBuffer    = RingBuffer(1200,6)
-		self.__DataQueue         = multiprocessing.Queue()
+		self.__DataRingBuffer    = RingBuffer(1600,16)
+		self.__DataQueue         = Queue()
+		self.__Emotiv            = Emotiv(self.__DataQueue, False, '0105699', True, False, False, True)
 
 	def setupData(self): #Initialisation des canaux
 		 #receive channels names from keyboard and idenfity them. 
@@ -99,8 +102,8 @@ class Data(object):
 		print type(newchannellist)
 		return newchannellist
 	
-	def DataProcess(self):
-		self.__process = multiprocessing.Process(target = self.DataSample, )
+	'''def DataProcess(self):
+		self.__process = multiprocessing.Process(target = self.DataSample, )'''
 		
 	def DataThreads(self):
 		self.__DataRead   = threading.Thread(target = self.DataRead)
@@ -111,7 +114,7 @@ class Data(object):
 	def DataRead(self):
 		#Fonction qui envoiera les donnees a l'ordinateur
 		self.startEv.wait()
-		self.IPEv.wait()
+		#self.IPEv.wait()
 		host = self.IPQueue.get()
 		print host
 		port = 6000
@@ -135,7 +138,7 @@ class Data(object):
 				self.__DataRingBuffer.Writer(data)
 				#print "Wrote!"
 		
-	def DataSample(self):#quickly sample the headset (READ) signal
+	'''def DataSample(self):#quickly sample the headset (READ) signal
 		#channelList est la liste des noms des canaux choisis
 		
 		
@@ -177,9 +180,9 @@ class Data(object):
 				print "Emotiv Engine start up failed."
 				exit();
 
-			
+			#self.__Emotiv.start()	
 			while not self.stopEv.is_set():
-				#print "Theta, Alpha, Low_beta, High_beta, Gamma \n"		
+				#print "Theta, Alpha, Low_beta, High_beta, Gamma \n"	
 				state = libEDK.IEE_EngineGetNextEvent(eEvent)
 				if state == 0:
 					eventType = libEDK.IEE_EmoEngineEventGetType(eEvent)
@@ -190,13 +193,13 @@ class Data(object):
 						Data = libEDK.IEE_GetAverageBandPowers(userID, channel[self.__Channels[i]], theta, alpha, low_beta, high_beta, gamma)
 						if Data == 0:
 							self.__DataQueue.put(np.array([channel[self.__Channels[i]], thetaValue.value, alphaValue.value, low_betaValue.value, high_betaValue.value, gammaValue.value]))
-							i = (i+1)%L
+							i = (i+1)%L'''
 	
 	def SocketManagment(self):
 
 		host = ""
 		port = 5000
-		buf  = 1024
+		buf  = 8192
 		addr = (host, port)
 		PCtoPISock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 		PCtoPISock.bind(addr)
@@ -210,20 +213,28 @@ class Data(object):
 			print addr
 			print "Data: ", data
 			if data == "Start":
-				self.startEv.set()
-			if data == "Stop":
-				self.stopEv.set()	
-			if data == "IP":
 				print addr[0]
 				self.IPQueue.put(addr[0])
 				self.IPEv.set()
+				self.startEv.set()
+				
+			if data == "Stop":
+				self.stopEv.set()	
+			if data == "Chan":
+				(data, addr) = PCtoPISock.recvfrom(buf)
+				while data != "end":
+					self.__Channels.append(data)
+					(data, addr) = PCtoPISock.recvfrom(buf)
+				
 	def Main(self):
-
+		self.__PClisten.start()
+		self.startEv.wait()
 		self.__DataImages.start()
 		self.__DataWrite.start()
 		self.__DataRead.start()
-		self.__PClisten.start()
-		self.__process.start()	
+		self.__Emotiv.start()
+
+		#self.__process.start()	
 		
 			
 		self.__DataImages.join()
@@ -245,7 +256,7 @@ def main():
 	return 0
 
 if __name__ == '__main__':
-	if sys.platform.startswith('win32'):
+	"""if sys.platform.startswith('win32'):
 	
 		import msvcrt
 	elif sys.platform.startswith('linux'):
@@ -269,6 +280,6 @@ if __name__ == '__main__':
 	except Exception as e:
 		print 'Error: cannot load EDK lib:', e
 		exit()
-	np.set_printoptions(threshold=np.inf)
+	np.set_printoptions(threshold=np.inf)"""
 	main()
 
